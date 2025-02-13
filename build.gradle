@@ -1,0 +1,45 @@
+plugins {
+    id 'java'
+}
+
+subprojects {
+    compileJava {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    apply plugin: 'java'
+
+    group = 'com.danal'
+    version = '1.0.0'
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        // Lombok for @Slf4j
+        compileOnly 'org.projectlombok:lombok:1.18.28'
+        annotationProcessor 'org.projectlombok:lombok:1.18.28'
+
+        // Log4j2 with SLF4J Bridge
+        implementation 'org.apache.logging.log4j:log4j-api:2.20.0'
+        implementation 'org.apache.logging.log4j:log4j-core:2.20.0'
+        implementation 'org.apache.logging.log4j:log4j-slf4j2-impl:2.20.0'  // log4j-slf4j-impl 대신 최신 브릿지 사용
+        implementation 'org.slf4j:slf4j-api:2.0.7'
+
+        // JUnit (테스트용)
+        testImplementation platform('org.junit:junit-bom:5.9.1')
+        testImplementation 'org.junit.jupiter:junit-jupiter'
+
+        testImplementation "org.assertj:assertj-core:3.22.0"
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+
+    tasks.withType(JavaCompile) {
+        options.encoding = 'UTF-8'
+    }
+}

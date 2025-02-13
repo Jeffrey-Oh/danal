@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Properties>
+        <!-- 공통 로그 디렉토리 경로 설정 -->
+        <Property name="log.dir">logs</Property>
+        <!-- 공통 로그 패턴 설정 -->
+        <Property name="log.pattern">%d{yyyy-MM-dd HH:mm:ss} [%t] %-5level %logger{36} - %msg%n</Property>
+    </Properties>
+
+    <Appenders>
+        <!-- 콘솔 출력 설정 -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${log.pattern}" />
+        </Console>
+
+        <!-- 공통 롤링 파일 설정 -->
+        <RollingFile name="RollingFileLogger"
+                     fileName="${log.dir}/application.log"
+                     filePattern="${log.dir}/application-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="${log.pattern}" />
+            <Policies>
+                <!-- 10MB 초과 시 로그 롤링 -->
+                <SizeBasedTriggeringPolicy size="10MB" />
+                <!-- 하루 단위로 로그 롤링 -->
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+            </Policies>
+        </RollingFile>
+    </Appenders>
+
+    <Loggers>
+        <!-- Root Logger: 모든 모듈에서 공통으로 사용하는 기본 로깅 설정 -->
+        <Root level="warn">
+            <AppenderRef ref="Console" />
+            <AppenderRef ref="RollingFileLogger" />
+        </Root>
+
+        <!-- Batch Service 전용 로거 설정 -->
+        <Logger name="com.danal.batch" level="info" additivity="false">
+            <AppenderRef ref="Console" />
+            <AppenderRef ref="RollingFileLogger" />
+        </Logger>
+    </Loggers>
+</Configuration>
