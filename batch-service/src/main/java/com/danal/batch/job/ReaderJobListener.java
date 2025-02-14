@@ -18,7 +18,7 @@ import java.io.InputStreamReader;
 public class ReaderJobListener implements JobExecutionListener {
 
     private ClassPathResource resource;
-    private Long totalLines;
+    private int totalLines;
 
     @Override
     public void beforeJob(JobExecution jobExecution) {
@@ -29,9 +29,10 @@ public class ReaderJobListener implements JobExecutionListener {
         } else throw new RuntimeException("CSV 파일명이 필요합니다.");
     }
 
-    public long calcTotalLines(ClassPathResource resource) {
+    public int calcTotalLines(ClassPathResource resource) {
+        log.info("파일 라인 수 계산 중 ...");
         try (BufferedReader br = new BufferedReader(new InputStreamReader(resource.getInputStream()), 8192)) {
-            return br.lines().count() - 1;
+            return Math.toIntExact(br.lines().count() - 1);
         } catch (Exception e) {
             log.error("파일 라인 수 계산 중 오류 발생: {}", e.getMessage());
             throw new RuntimeException("CSV 파일을 읽을 수 없습니다.");
