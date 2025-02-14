@@ -43,7 +43,5 @@ bin/
 
 *.csv
 
-db/
-
 *.log
 *.log.*
