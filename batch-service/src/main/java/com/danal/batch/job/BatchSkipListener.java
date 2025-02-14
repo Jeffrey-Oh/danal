@@ -13,25 +13,27 @@ import org.springframework.stereotype.Component;
 public class BatchSkipListener<T, S> implements SkipListener<T, S> {
 
     private final ErrorLogJpaRepository errorLogJpaRepository;
+    private final BatchStepListener batchStepListener;
 
     @Override
     public void onSkipInRead(Throwable t) {
+        batchStepListener.incrementSkipCount();
         log.warn("읽기 중 오류 발생 - 오류: {}", t.getMessage());
-        ErrorLog errorLog = new ErrorLog(t.getMessage());
-        errorLogJpaRepository.save(errorLog);
+        errorLogJpaRepository.save(new ErrorLog(t.getMessage()));
     }
 
     @Override
     public void onSkipInProcess(T item, Throwable t) {
+        batchStepListener.incrementSkipCount();
         log.warn("처리 중 오류 발생 - 데이터: {}, 오류: {}", item, t.getMessage());
-        ErrorLog errorLog = new ErrorLog(t.getMessage());
-        errorLogJpaRepository.save(errorLog);
+        errorLogJpaRepository.save(new ErrorLog(t.getMessage()));
     }
 
     @Override
     public void onSkipInWrite(S item, Throwable t) {
+        batchStepListener.incrementSkipCount();
         log.warn("쓰기 중 오류 발생 - 데이터: {}, 오류: {}", item, t.getMessage());
-        ErrorLog errorLog = new ErrorLog(t.getMessage());
-        errorLogJpaRepository.save(errorLog);
+        errorLogJpaRepository.save(new ErrorLog(t.getMessage()));
     }
+
 }

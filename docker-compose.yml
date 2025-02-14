@@ -34,6 +34,8 @@ services:
       mysql:
         condition: service_healthy
     restart: on-failure
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
 
 networks:
   danal_network:

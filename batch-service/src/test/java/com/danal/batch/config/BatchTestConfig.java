@@ -1,7 +1,8 @@
 package com.danal.batch.config;
 
+import com.danal.batch.job.BatchStepListener;
 import com.danal.batch.job.ChunkSizeTrackingListener;
-import com.danal.batch.job.ReaderJobListener;
+import com.danal.batch.job.JobListener;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.context.annotation.Bean;
@@ -19,13 +20,18 @@ public class BatchTestConfig {
     }
 
     @Bean
-    public ReaderJobListener readerStepListener() {
-        return new ReaderJobListener();
+    public JobListener readerStepListener() {
+        return new JobListener();
     }
 
     @Bean
     public ChunkSizeTrackingListener<?> chunkSizeTrackingListener() {
         return new ChunkSizeTrackingListener<>();
+    }
+
+    @Bean
+    public BatchStepListener batchStepListener() {
+        return new BatchStepListener();
     }
 
 }

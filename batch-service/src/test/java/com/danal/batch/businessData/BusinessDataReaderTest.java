@@ -15,28 +15,43 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class BusinessDataReaderTest {
 
     @Test
-    @DisplayName("CSV 한 줄 읽기")
+    @DisplayName("CSV 읽기")
     void reader() throws Exception {
         // Given: Reader 설정
         FlatFileItemReader<BusinessData> reader = new FlatFileItemReader<>();
         reader.setResource(new ClassPathResource("test1.csv"));
-        reader.setLinesToSkip(1); // 헤더 제외
-        reader.setEncoding("EUC-KR");  // 인코딩 설정
 
-        // Reader 초기화
-        reader.setLineMapper(new DefaultLineMapper<>() {{
-            setLineTokenizer(new DelimitedLineTokenizer() {{
-                setNames(BusinessData.getFieldNames().toArray(String[]::new));
-                setDelimiter(",");
-                setQuoteCharacter('\"');  // CSV 파일 내 따옴표 처리
-                setStrict(false);
-            }});
-            setFieldSetMapper(new CustomFieldSetMapper());
-        }});
+        int startLine = 1;
+        int endLine = 1;
+
+        int linesToSkip = (startLine <= 1) ? 1 : (startLine - 1); // 헤더 스킵
+        reader.setLinesToSkip(linesToSkip);
+        reader.setEncoding("EUC-KR");
+
+        reader.setLineMapper(new DefaultLineMapper<>() {
+            @Override
+            public BusinessData mapLine(String line, int lineNumber) throws Exception {
+                // endLine 초과하면 더 이상 읽지 않음
+                if (lineNumber - 1 > endLine) {
+                    return null;
+                }
+
+                return new DefaultLineMapper<BusinessData>() {{
+                    setLineTokenizer(new DelimitedLineTokenizer() {{
+                        setNames(BusinessData.getFieldNames().toArray(String[]::new));
+                        setDelimiter(",");
+                        setQuoteCharacter('\"');
+                        setStrict(false);
+                    }});
+                    setFieldSetMapper(new CustomFieldSetMapper());
+                }}.mapLine(line, lineNumber);
+            }
+        });
+
         reader.afterPropertiesSet();
-        reader.open(MetaDataInstanceFactory.createStepExecution().getExecutionContext());
 
         // When: 데이터 한 줄 읽기
+        reader.open(MetaDataInstanceFactory.createStepExecution().getExecutionContext());
         BusinessData item = reader.read();
 
         // Then: 데이터 검증
