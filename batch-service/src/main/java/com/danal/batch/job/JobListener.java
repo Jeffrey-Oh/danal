@@ -15,7 +15,7 @@ import java.io.InputStreamReader;
 @Getter
 @Setter
 @Component
-public class ReaderJobListener implements JobExecutionListener {
+public class JobListener implements JobExecutionListener {
 
     private ClassPathResource resource;
     private int totalLines;

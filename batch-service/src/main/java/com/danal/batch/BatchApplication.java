@@ -28,7 +28,7 @@ public class BatchApplication {
             jobLauncher.run(job, jobParameters);
             log.info("배치 작업 완료");
             long end = System.currentTimeMillis();
-            log.info("실행 시간 : {}ms", (end - start));
+            log.info("실행 시간 : {} ms", (end - start));
         } catch (JobExecutionAlreadyRunningException e) {
             log.error("배치 작업이 이미 실행 중입니다.", e);
         } catch (JobRestartException e) {

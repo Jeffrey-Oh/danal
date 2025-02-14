@@ -1,7 +1,7 @@
 package com.danal.batch.businessData;
 
 import com.danal.batch.config.BatchTestConfig;
-import com.danal.batch.job.ReaderJobListener;
+import com.danal.batch.job.JobListener;
 import com.danal.batch.job.buisnessData.BusinessDataJobConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,10 +23,10 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import javax.sql.DataSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBatchTest
 @ExtendWith(SpringExtension.class)
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @ContextConfiguration(classes = {BatchTestConfig.class, BusinessDataJobConfig.class})
 public class BusinessDataStepTest {
 
@@ -37,7 +37,7 @@ public class BusinessDataStepTest {
     private DataSource dataSource;
 
     @Autowired
-    private ReaderJobListener readerJobListener;
+    private JobListener jobListener;
 
     @AfterEach
     void deleteAll() {
@@ -53,10 +53,10 @@ public class BusinessDataStepTest {
     void givenValidData_whenStepExecuted_thenSuccess() {
         // Given
         ClassPathResource resource = new ClassPathResource("test1.csv");
-        readerJobListener.setResource(resource);
-        readerJobListener.setTotalLines(readerJobListener.calcTotalLines(resource));
+        jobListener.setResource(resource);
+        jobListener.setTotalLines(jobListener.calcTotalLines(resource));
 
-        JobExecution jobExecution = jobLauncherTestUtils.launchStep("processStep");
+        JobExecution jobExecution = jobLauncherTestUtils.launchStep("partitionedStep");
         StepExecution stepExecution = jobExecution.getStepExecutions().iterator().next();
 
         // Then: Step이 정상 종료되었는지 검증
@@ -69,16 +69,19 @@ public class BusinessDataStepTest {
     void givenInvalidData_whenStepExecuted_thenSkipApplied() {
         // Given
         ClassPathResource resource = new ClassPathResource("test2.csv");
-        readerJobListener.setResource(resource);
-        readerJobListener.setTotalLines(readerJobListener.calcTotalLines(resource));
+        jobListener.setResource(resource);
+        jobListener.setTotalLines(jobListener.calcTotalLines(resource));
 
         // When: Step 실행
-        JobExecution jobExecution = jobLauncherTestUtils.launchStep("processStep");
-        StepExecution stepExecution = jobExecution.getStepExecutions().iterator().next();
+        JobExecution jobExecution = jobLauncherTestUtils.launchStep("partitionedStep");
 
-        // Then: Skip 검증
-        assertEquals(stepExecution.getSkipCount(), 1);
-        assertEquals(BatchStatus.COMPLETED, stepExecution.getStatus());
+        int skipCount = jobExecution.getStepExecutions().stream().mapToInt(stepExecution -> stepExecution.getExecutionContext().getInt("skipCount", 0)).sum();
+        boolean allStepsCompleted = jobExecution.getStepExecutions().stream().allMatch(step -> step.getStatus().equals(BatchStatus.COMPLETED));
+
+        // Then: 검증
+        assertEquals(1, skipCount);
+        assertTrue(allStepsCompleted);
     }
+
 
 }

@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @Component
 public class ChunkSizeTrackingListener<T> implements ItemWriteListener<T> {
 
-    private final AtomicLong processedCount = new AtomicLong();
+    private final ThreadLocal<AtomicLong> processedCount = ThreadLocal.withInitial(AtomicLong::new);
 
     @Setter
     private long totalLines;
@@ -25,19 +25,23 @@ public class ChunkSizeTrackingListener<T> implements ItemWriteListener<T> {
     @Override
     public void afterWrite(Chunk<? extends T> items) {
 //        log.info("쓰기 완료: {}", items.size());
-        processedCount.addAndGet(items.size());
+        processedCount.get().addAndGet(items.size());
         printProgress();
     }
 
     @Override
     public void onWriteError(Exception exception, Chunk<? extends T> items) {
-        log.error("쓰기 오류 발생: {}", exception.getMessage());
+//        log.error("쓰기 오류 발생: {}", exception.getMessage());
     }
 
     private void printProgress() {
         if (totalLines > 0) {
-            int progressPercentage = (int) (((double) processedCount.get() / totalLines) * 100);
-            log.info("진행 상황: {}% ({} / {})", progressPercentage, processedCount.get(), totalLines);
+            long processedCount = this.processedCount.get().get();
+            int progressPercentage = (int) Math.ceil((((double) processedCount / totalLines) * 100));
+            if (processedCount >= totalLines) {
+                progressPercentage = 100;
+            }
+            log.info("진행 상황: {}% ({} / {})", progressPercentage, processedCount, totalLines);
         }
     }
 }
