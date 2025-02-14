@@ -19,11 +19,12 @@ public class ChunkSizeTrackingListener<T> implements ItemWriteListener<T> {
 
     @Override
     public void beforeWrite(Chunk<? extends T> items) {
-        // 쓰기 전에 호출됨 (필요시 로그 출력)
+//        log.info("쓰기 시작: {}", items.size());
     }
 
     @Override
     public void afterWrite(Chunk<? extends T> items) {
+//        log.info("쓰기 완료: {}", items.size());
         processedCount.addAndGet(items.size());
         printProgress();
     }

@@ -20,12 +20,15 @@ public class BatchApplication {
             Job job = context.getBean(Job.class);
 
             log.info("배치 작업 시작");
+            long start = System.currentTimeMillis();
             JobParameters jobParameters = new JobParametersBuilder()
                 .addLong("timestamp", System.currentTimeMillis())  // 중복 실행 방지용 타임스탬프
                 .addString("fileName", "fulldata_07_24_04_P_일반음식점.csv")
                 .toJobParameters();
             jobLauncher.run(job, jobParameters);
             log.info("배치 작업 완료");
+            long end = System.currentTimeMillis();
+            log.info("실행 시간 : {}ms", (end - start));
         } catch (JobExecutionAlreadyRunningException e) {
             log.error("배치 작업이 이미 실행 중입니다.", e);
         } catch (JobRestartException e) {
