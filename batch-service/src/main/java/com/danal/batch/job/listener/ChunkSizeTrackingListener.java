@@ -1,21 +1,21 @@
-package com.danal.batch.job;
+package com.danal.batch.job.listener;
 
-import lombok.Setter;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.ItemWriteListener;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.item.Chunk;
-import org.springframework.stereotype.Component;
-
-import java.util.concurrent.atomic.AtomicLong;
+import org.springframework.beans.factory.annotation.Value;
 
 @Slf4j
-@Component
+@StepScope
+@RequiredArgsConstructor
 public class ChunkSizeTrackingListener<T> implements ItemWriteListener<T> {
 
-    private final ThreadLocal<AtomicLong> processedCount = ThreadLocal.withInitial(AtomicLong::new);
+    private final BatchStepListener batchStepListener;
 
-    @Setter
-    private long totalLines;
+    @Value("#{jobExecutionContext['totalLines']}")
+    private int totalLines;
 
     @Override
     public void beforeWrite(Chunk<? extends T> items) {
@@ -25,18 +25,18 @@ public class ChunkSizeTrackingListener<T> implements ItemWriteListener<T> {
     @Override
     public void afterWrite(Chunk<? extends T> items) {
 //        log.info("쓰기 완료: {}", items.size());
-        processedCount.get().addAndGet(items.size());
-        printProgress();
+        batchStepListener.incrementProcessedCount(items.size());
+        int processedCount = batchStepListener.getProcessedCount();
+        printProgress(processedCount);
     }
 
     @Override
     public void onWriteError(Exception exception, Chunk<? extends T> items) {
-//        log.error("쓰기 오류 발생: {}", exception.getMessage());
+        log.error("쓰기 오류 발생: {}", exception.getMessage());
     }
 
-    private void printProgress() {
+    private void printProgress(int processedCount) {
         if (totalLines > 0) {
-            long processedCount = this.processedCount.get().get();
             int progressPercentage = (int) Math.ceil((((double) processedCount / totalLines) * 100));
             if (processedCount >= totalLines) {
                 progressPercentage = 100;

@@ -1,8 +1,11 @@
 package com.danal.batch.config;
 
-import com.danal.batch.job.BatchStepListener;
-import com.danal.batch.job.ChunkSizeTrackingListener;
-import com.danal.batch.job.JobListener;
+import com.danal.batch.domain.businessData.BusinessDataJpaRepository;
+import com.danal.batch.domain.errorLog.ErrorLogJpaRepository;
+import com.danal.batch.job.listener.BatchSkipListener;
+import com.danal.batch.job.listener.BatchStepListener;
+import com.danal.batch.job.listener.ChunkSizeTrackingListener;
+import com.danal.batch.job.listener.JobListener;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.test.JobLauncherTestUtils;
 import org.springframework.context.annotation.Bean;
@@ -20,18 +23,31 @@ public class BatchTestConfig {
     }
 
     @Bean
-    public JobListener readerStepListener() {
-        return new JobListener();
+    public JobListener jobListener(
+        BusinessDataJpaRepository businessDataJpaRepository,
+        ErrorLogJpaRepository errorLogJpaRepository
+    ) {
+        return new JobListener(businessDataJpaRepository, errorLogJpaRepository);
     }
 
     @Bean
-    public ChunkSizeTrackingListener<?> chunkSizeTrackingListener() {
-        return new ChunkSizeTrackingListener<>();
+    public ChunkSizeTrackingListener<?> chunkSizeTrackingListener(
+        BatchStepListener batchStepListener
+    ) {
+        return new ChunkSizeTrackingListener<>(batchStepListener);
     }
 
     @Bean
     public BatchStepListener batchStepListener() {
         return new BatchStepListener();
+    }
+
+    @Bean
+    public BatchSkipListener<?, ?> batchSkipListener(
+        ErrorLogJpaRepository errorLogJpaRepository,
+        BatchStepListener batchStepListener
+    ) {
+        return new BatchSkipListener<>(errorLogJpaRepository, batchStepListener);
     }
 
 }
