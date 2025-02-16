@@ -1,8 +1,8 @@
 package com.danal.batch.job.buisnessData;
 
 import com.danal.batch.domain.businessData.BusinessData;
-import com.danal.batch.exception.FieldSetException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.item.file.FlatFileParseException;
 import org.springframework.batch.item.file.mapping.FieldSetMapper;
 import org.springframework.batch.item.file.transform.FieldSet;
 
@@ -13,7 +13,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 
 @Slf4j
-public class CustomFieldSetMapper implements FieldSetMapper<BusinessData> {
+public class BusinessDataFieldSetMapper implements FieldSetMapper<BusinessData> {
 
     @Override
     public BusinessData mapFieldSet(FieldSet fieldSet) {
@@ -74,10 +74,10 @@ public class CustomFieldSetMapper implements FieldSetMapper<BusinessData> {
                     field.set(businessData, valueStr);
                 }
 
-            } catch (Exception e) {
+            } catch (DateTimeParseException | IllegalAccessException e) {
                 // 필드에 대한 변환에 실패할 경우 예외 처리
                 log.error("fieldName = {}, fieldType = {}, message = {}", fieldName, fieldType, e.getMessage());
-                throw new FieldSetException(e.getMessage());
+                throw new FlatFileParseException(e.getMessage(), fieldName);
             }
         }
 

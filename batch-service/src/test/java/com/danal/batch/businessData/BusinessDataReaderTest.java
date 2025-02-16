@@ -1,7 +1,7 @@
 package com.danal.batch.businessData;
 
 import com.danal.batch.domain.businessData.BusinessData;
-import com.danal.batch.job.buisnessData.CustomFieldSetMapper;
+import com.danal.batch.job.buisnessData.BusinessDataFieldSetMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.batch.item.file.FlatFileItemReader;
@@ -43,7 +43,7 @@ public class BusinessDataReaderTest {
                         setQuoteCharacter('\"');
                         setStrict(false);
                     }});
-                    setFieldSetMapper(new CustomFieldSetMapper());
+                    setFieldSetMapper(new BusinessDataFieldSetMapper());
                 }}.mapLine(line, lineNumber);
             }
         });
@@ -57,7 +57,7 @@ public class BusinessDataReaderTest {
         // Then: 데이터 검증
         assertThat(item).isNotNull();
         assertThat(item.getServiceName()).isEqualTo("일반음식점");
-        assertThat(item.getServiceId()).isEqualTo("07_24_04_P");
+        assertThat(item.getServiceId()).isEqualTo("testId");
     }
 
 }

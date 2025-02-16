@@ -1,8 +1,12 @@
 package com.danal.batch.job.buisnessData;
 
 import com.danal.batch.domain.businessData.BusinessData;
-import com.danal.batch.domain.errorLog.ErrorLogJpaRepository;
-import com.danal.batch.job.*;
+import com.danal.batch.job.CustomPartitioner;
+import com.danal.batch.job.SqlGenerator;
+import com.danal.batch.job.listener.BatchSkipListener;
+import com.danal.batch.job.listener.BatchStepListener;
+import com.danal.batch.job.listener.ChunkSizeTrackingListener;
+import com.danal.batch.job.listener.JobListener;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
@@ -14,7 +18,6 @@ import org.springframework.batch.core.partition.support.Partitioner;
 import org.springframework.batch.core.partition.support.TaskExecutorPartitionHandler;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
-import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider;
 import org.springframework.batch.item.database.JdbcBatchItemWriter;
 import org.springframework.batch.item.file.FlatFileItemReader;
@@ -25,6 +28,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -40,24 +44,32 @@ public class BusinessDataJobConfig {
 
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
-    private final ErrorLogJpaRepository errorLogJpaRepository;
-    private final ChunkSizeTrackingListener<BusinessData> chunkSizeTrackingListener;
+
+    @Bean
+    @StepScope
+    public BatchStepListener batchStepListener() {
+        return new BatchStepListener();
+    }
+
+    @Bean
+    @StepScope
+    public ChunkSizeTrackingListener<BusinessData> chunkSizeTrackingListener(
+        BatchStepListener batchStepListener
+    ) {
+        return new ChunkSizeTrackingListener<>(batchStepListener);
+    }
 
     @Bean
     @StepScope
     public FlatFileItemReader<BusinessData> reader(
-        ChunkSizeTrackingListener<BusinessData> chunkSizeTrackingListener,
-        JobListener jobListener,
+        @Value("#{jobExecutionContext['fileName']}") String fileName,
         @Value("#{stepExecutionContext['startLine']}") int startLine,
         @Value("#{stepExecutionContext['endLine']}") int endLine
     ) throws Exception {
-        chunkSizeTrackingListener.setTotalLines(jobListener.getTotalLines());
-
         FlatFileItemReader<BusinessData> reader = new FlatFileItemReader<>();
-        reader.setResource(jobListener.getResource());
+        reader.setResource(new ClassPathResource(fileName));
 
-        int linesToSkip = (startLine <= 1) ? 1 : (startLine - 1); // 헤더 스킵
-        reader.setLinesToSkip(linesToSkip);
+        reader.setLinesToSkip(startLine);
         reader.setEncoding("EUC-KR");
 
         reader.setLineMapper(new DefaultLineMapper<>() {
@@ -75,7 +87,7 @@ public class BusinessDataJobConfig {
                         setQuoteCharacter('\"');
                         setStrict(false);
                     }});
-                    setFieldSetMapper(new CustomFieldSetMapper());
+                    setFieldSetMapper(new BusinessDataFieldSetMapper());
                 }}.mapLine(line, lineNumber);
             }
         });
@@ -125,8 +137,10 @@ public class BusinessDataJobConfig {
 
     @Bean
     @StepScope
-    public Partitioner partitioner(JobListener jobListener) {
-        return new CustomPartitioner(jobListener.getTotalLines());
+    public Partitioner partitioner(
+        @Value("#{jobExecutionContext['totalLines']}") int totalLines
+    ) {
+        return new CustomPartitioner(totalLines);
     }
 
     @Bean
@@ -156,20 +170,23 @@ public class BusinessDataJobConfig {
 
     @Bean
     public Step chunkStep(
-        ItemReader<BusinessData> reader,
+        FlatFileItemReader<BusinessData> reader,
         JdbcBatchItemWriter<BusinessData> writer,
-        BatchStepListener batchStepListener
+        BatchStepListener batchStepListener,
+        ChunkSizeTrackingListener<BusinessData> chunkSizeTrackingListener,
+        BatchSkipListener<BusinessData, BusinessData> batchSkipListener
     ) {
         return new StepBuilder("chunkStep", jobRepository)
             .<BusinessData, BusinessData>chunk(10000, transactionManager)
             .reader(reader)
             .writer(writer)
             .listener(batchStepListener)
+            .listener(chunkSizeTrackingListener)
             .faultTolerant()
+            .listener(batchSkipListener)
             .skipLimit(10)
             .skip(FlatFileParseException.class)
-            .listener(new BatchSkipListener<>(errorLogJpaRepository, batchStepListener))
-            .listener(chunkSizeTrackingListener)
+            .skip(IllegalAccessException.class)
             .transactionManager(transactionManager)
             .build();
     }

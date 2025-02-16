@@ -1,4 +1,4 @@
-package com.danal.batch.job;
+package com.danal.batch.job.listener;
 
 import com.danal.batch.domain.errorLog.ErrorLog;
 import com.danal.batch.domain.errorLog.ErrorLogJpaRepository;
