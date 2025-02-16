@@ -45,7 +45,5 @@ db/
 
 *.csv
 
-db/
-
 *.log
 *.log.*
